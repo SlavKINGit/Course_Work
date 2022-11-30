@@ -1,4 +1,5 @@
 import json
+import os
 from pprint import pprint
 
 from data import VK_TOKEN, YA_TOKEN, user_id
@@ -27,6 +28,11 @@ class Backup:
 
     def get_data(self):
         bar = IncrementalBar('Фотографий загруженно на пк (из 5): ', max=5)
+        try:
+            os.mkdir('img')
+            print('Папка создана в рабочей области')
+        except Exception:
+            print('Папка уже была создана в рабочей области')
         url = 'https://api.vk.com/method/photos.get'
         req = requests.get(url=url, params=self.vk_params)
         req_json = req.json()
@@ -53,6 +59,21 @@ class Backup:
             data = json.load(file)
         pprint(data)
 
+    def create_folder(self):
+        try:
+            url = 'https://cloud-api.yandex.net/v1/disk/resources'
+            params = {
+                'path': 'img'
+            }
+            headers = {
+                'Authorization': f'OAuth {self.ya_token}',
+            }
+            req = requests.put(url=url, params=params, headers=headers)
+            req.raise_for_status()
+            print('Папка создана в облачном хранилище')
+        except Exception:
+            print('Папка уже была создана в облачном хранилище')
+
     def upload_data(self, file_path, file_data):
         url = 'https://cloud-api.yandex.net/v1/disk/resources/upload'
         params = {
@@ -73,6 +94,7 @@ def main():
     back = Backup(vk_id=user_id, vk_token=VK_TOKEN, ya_token=YA_TOKEN)
     back.get_data()
     bar = IncrementalBar('Фотографий выгруженно (из 5): ', max=5)
+    back.create_folder()
     with open('data.json', encoding='utf-8') as file:
         file_data = json.load(file)
         for data in file_data:
